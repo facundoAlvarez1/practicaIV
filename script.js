@@ -28,7 +28,6 @@ getEmployees()
 
 
 
-
 function getCompanies() {
     return new Promise((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -46,6 +45,7 @@ function getCompanies() {
         xhr.send();
     });
 }
+
 
 getCompanies()
     .then(companies => {
@@ -76,33 +76,80 @@ function deleteEmployee(employeeId) {
     xhr.send();
 }
 
+
+const createEmployee = (employee) => {
+    return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', `${apiUrl}/Employee`, true);
+        xhr.setRequestHeader('Content-Type', 'application/json;charset=UTF-8');
+
+        xhr.onload = function () {
+            if (xhr.status === 201 || xhr.status === 200) {
+                try {
+                    const createdEmployee = JSON.parse(xhr.responseText);
+                    resolve(createdEmployee);
+                } catch (error) {
+                    console.error('Error al parsear la respuesta JSON:', error);
+                    reject(new Error('Error al crear el empleado. No se pudieron analizar los datos de la respuesta.'));
+                }
+            } else {
+                console.error('Error al crear el empleado. Estado:', xhr.status);
+                console.error('Respuesta del servidor:', xhr.responseText);
+                reject(new Error(`Error al crear el empleado. Estado: ${xhr.status}`));
+            }
+        };
+
+        xhr.send(JSON.stringify(employee));
+    });
+};
+
+const newEmployee = {
+    Company: 'HPC',
+    lastName: 'Apellido',
+    firstName: 'aamaombre',
+    email: 'nuevo@email.com',
+};
+
+createEmployee(newEmployee)
+    .then(createdEmployee => {
+        if (Object.keys(createdEmployee).length > 0) {
+            updateTable();
+        } else {
+            console.log('La creación fue exitosa, pero no se recibieron datos.');
+        }
+    })
+    .catch(error => {
+        console.error('Error al crear el empleado:', error);
+    });
+
+
 function updateTable() {
     Promise.all([getEmployees(), getCompanies()])
         .then(([employees, companies]) => {
             const table = document.querySelector('.table tbody');
             table.innerHTML = '';
 
-    /*            const filterEmployees = employees.filter(employee => {
-                return employee.companyId !== null && employee.firstName.startsWith('J');
+            const firstFilter = employees.filter(employee => {
+                return employee.companyId !== null && employee.companyId === 7;
             });
-*/
-
-          /*  const filterEmployees = employees.sort((a, b) => a.lastName.localeCompare(b.lastName));*/
 
             /* const filterEmployees = employees.filter(employee => {
                       return employee.companyId !== null && employee.employeeId % 2 === 0;
                   }); FILTRAR CON ID PAR*/
 
-
             /* employees.sort((a, b) => b.id - a.id);//ordenar por id*/
 
-            
-            const filterEmployees = employees.filter(employee => {
-                return employee.companyId !== null && employee.email.includes('google');
+            const secondFilter = firstFilter.filter(employee => {
+                return employee.companyId !== null && employee.email.includes('.com');
             });
 
+            const finalFilteredEmployees = secondFilter.filter(employee => {
+                return employee.companyId !== null && employee.firstName.startsWith('J');
+            });
 
-            filterEmployees.forEach((employee, index) => {
+            finalFilteredEmployees.sort((a, b) => a.lastName.localeCompare(b.lastName));
+
+            finalFilteredEmployees.forEach((employee, index) => {
                 const company = companies.find(c => c.companyId === employee.companyId);
                 const companyName = company ? company.name : '';
                 const newRow = `
@@ -115,7 +162,7 @@ function updateTable() {
             <td><button type="button" class="btn btn-danger btn-sm" data-employee-id="${employee.employeeId}">Delete</button></td>
           </tr>
         `;
-
+        
                 table.insertAdjacentHTML('beforeend', newRow);
 
                 const deleteButton = table.querySelector(`[data-employee-id="${employee.employeeId}"]`);
@@ -130,3 +177,4 @@ function updateTable() {
 }
 
 updateTable();
+
